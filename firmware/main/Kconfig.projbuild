@@ -1,0 +1,194 @@
+menu "KidBoard Hardware Configuration"
+
+    choice KB_BOARD
+        prompt "Target board"
+        default KB_BOARD_RETERMINAL_E1001
+        help
+            Selects pin defaults for the target hardware (docs/11).
+            Individual pins below can still be overridden.
+
+        config KB_BOARD_RETERMINAL_E1001
+            bool "Seeed reTerminal E1001 (ESP32-S3 + 7.5in UC8179 800x480)"
+
+        config KB_BOARD_DEVKITC_WAVESHARE
+            bool "ESP32-S3-DevKitC-1-N8R8 + Waveshare 7.5inch V2 (hand-wired)"
+    endchoice
+
+    menu "E-Paper Display SPI Pins"
+        config KB_EPAPER_MOSI_GPIO
+            int "MOSI / DIN GPIO"
+            default 9 if KB_BOARD_RETERMINAL_E1001
+            default 11
+            help
+                GPIO pin connected to E-Paper MOSI/DIN pin.
+
+        config KB_EPAPER_SCLK_GPIO
+            int "SCLK / CLK GPIO"
+            default 7 if KB_BOARD_RETERMINAL_E1001
+            default 12
+            help
+                GPIO pin connected to E-Paper SCK/CLK pin.
+
+        config KB_EPAPER_CS_GPIO
+            int "CS GPIO"
+            default 10
+            help
+                GPIO pin connected to E-Paper Chip Select pin.
+
+        config KB_EPAPER_DC_GPIO
+            int "DC (Data/Command) GPIO"
+            default 11 if KB_BOARD_RETERMINAL_E1001
+            default 9
+            help
+                GPIO pin connected to E-Paper DC pin.
+
+        config KB_EPAPER_RST_GPIO
+            int "RST (Reset) GPIO"
+            default 12 if KB_BOARD_RETERMINAL_E1001
+            default 8
+            help
+                GPIO pin connected to E-Paper Reset pin.
+
+        config KB_EPAPER_BUSY_GPIO
+            int "BUSY GPIO"
+            default 13 if KB_BOARD_RETERMINAL_E1001
+            default 7
+            help
+                GPIO pin connected to E-Paper Busy pin.
+
+        config KB_EPAPER_BUSY_ACTIVE_LEVEL
+            int "BUSY Active Level (0=Low, 1=High)"
+            default 0
+            range 0 1
+            help
+                Signal level indicating display is busy (0 for low active, 1 for high active).
+
+        config KB_SD_CS_GPIO
+            int "SD card CS GPIO sharing the e-paper SPI bus (-1 = none)"
+            default 14 if KB_BOARD_RETERMINAL_E1001
+            default -1
+            range -1 48
+            help
+                reTerminal E1001 shares SCK/MOSI between the panel and the SD slot.
+                The firmware drives this pin high (deselected) before using the panel.
+
+        config KB_EPAPER_DIAG_IGNORE_BUSY
+            bool "DIAGNOSTIC: ignore a stuck BUSY pin and use fixed delays"
+            default n
+            help
+                Hardware bring-up only. When BUSY stays asserted after reset, keep
+                driving the panel with fixed delays to tell a BUSY-read problem apart
+                from a dead panel. Never enable in release builds.
+
+        config KB_STATUS_LED_GPIO
+            int "Status LED GPIO, active low (-1 = none)"
+            default 6 if KB_BOARD_RETERMINAL_E1001
+            default -1
+            range -1 48
+            help
+                Turned on as soon as app_main starts (reTerminal E1001: green LED).
+    endmenu
+
+    menu "Physical Push Buttons"
+        config KB_BUTTON_DONE_GPIO
+            int "DONE Button GPIO"
+            default 3 if KB_BOARD_RETERMINAL_E1001
+            default 4
+            help
+                GPIO pin for DONE button (active low with pullup).
+                reTerminal E1001: Refresh key.
+
+        config KB_BUTTON_NEXT_GPIO
+            int "NEXT Button GPIO"
+            default 4 if KB_BOARD_RETERMINAL_E1001
+            default 5
+            help
+                GPIO pin for NEXT button (active low with pullup).
+                reTerminal E1001: white key next to the green one (official "Left", GPIO4);
+                swapped with BACK on 2026-10-11 at the user's request.
+
+        config KB_BUTTON_BACK_GPIO
+            int "BACK Button GPIO"
+            default 5 if KB_BOARD_RETERMINAL_E1001
+            default 6
+            help
+                GPIO pin for BACK button (active low with pullup).
+                reTerminal E1001: outer white key (official "Right", GPIO5).
+
+        config KB_BUTTON_DEBOUNCE_MS
+            int "Button Debounce Milliseconds"
+            default 40
+            help
+                Debounce filter duration in milliseconds (30~50ms per docs/07).
+    endmenu
+
+    menu "Storage Paths"
+        config KB_SPIFFS_BASE_PATH
+            string "SPIFFS Mount Base Path"
+            default "/spiffs"
+            help
+                Root mount point for SPIFFS flash partition.
+
+        config KB_FRAME_DIR_PATH
+            string "Frame Cache Directory"
+            default "/spiffs/frame"
+            help
+                Subdirectory for caching last.bin, staging.bin, and meta.json.
+    endmenu
+
+    menu "Network"
+        config KB_WIFI_SSID
+            string "Default Wi-Fi SSID (empty = use BLE provisioning)"
+            default ""
+            help
+                Development convenience only. Set it in an untracked
+                sdkconfig.defaults.local, never in a committed file.
+
+        config KB_WIFI_PASSWORD
+            string "Default Wi-Fi password"
+            default ""
+
+        config KB_BATTERY_ADC_GPIO
+            int "Battery voltage ADC GPIO (-1 = none)"
+            default 1 if KB_BOARD_RETERMINAL_E1001
+            default -1
+            range -1 48
+            help
+                reTerminal E1001: GPIO1 (ADC1_CH0) behind a 10k/20k divider.
+
+        config KB_BATTERY_EN_GPIO
+            int "Battery divider enable GPIO (-1 = none)"
+            default 21 if KB_BOARD_RETERMINAL_E1001
+            default -1
+            range -1 48
+
+        config KB_BUZZER_GPIO
+            int "Buzzer GPIO driven by LEDC PWM (-1 = none)"
+            default 45 if KB_BOARD_RETERMINAL_E1001
+            default -1
+            range -1 48
+
+        config KB_CLOCK_ENABLE
+            bool "Show a device-drawn clock in the header (D-015)"
+            default y
+            help
+                Draws HH:MM into the reserved clock slot of the server frame and
+                refreshes it every minute with a partial refresh; a full refresh
+                every hour clears ghosting. Disable if partial refresh misbehaves.
+
+        config KB_CLOCK_DEFAULT_UTC_OFFSET_MIN
+            int "Clock UTC offset in minutes before the first sync"
+            default 480
+            range -840 840
+            help
+                Used until the server reports the child's timezone offset
+                (utcOffsetMinutes in the sync response). 480 = UTC+8.
+
+        config KB_SERVER_URL
+            string "KidBoard server base URL"
+            default "http://192.168.1.100:3000"
+            help
+                Base URL of the KidBoard Web/Device API, without trailing slash.
+    endmenu
+
+endmenu

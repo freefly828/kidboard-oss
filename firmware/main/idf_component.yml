@@ -1,0 +1,5 @@
+## ESP-IDF 6.x removed the built-in wifi_provisioning component;
+## its successor is the managed component espressif/network_provisioning.
+dependencies:
+  idf: ">=6.1"
+  espressif/network_provisioning: "^1.3.1"

@@ -1,0 +1,31 @@
+{
+  "name": "@kidboard/renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node ../../scripts/fix-esm-ext.mjs",
+    "dev": "node dist/main.js",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "tsx ../../scripts/smoke-phase3.mjs"
+  },
+  "dependencies": {
+    "@kidboard/db": "workspace:*",
+    "@kidboard/screen-template": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "playwright-core": "1.62.0",
+    "pngjs": "7.0.0",
+    "postgres": "3.4.9",
+    "tsx": "4.23.13"
+  },
+  "devDependencies": {
+    "@kidboard/tsconfig": "workspace:*",
+    "@types/node": "22.20.2",
+    "@types/pngjs": "6.0.5",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

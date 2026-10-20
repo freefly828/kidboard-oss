@@ -1,0 +1,28 @@
+# KidBoard baseline for ESP-IDF 6.1 (built with Docker image espressif/idf:v6.1).
+# Target: esp32s3. Default board: Seeed reTerminal E1001 (see main/Kconfig.projbuild).
+#
+# Flash stays at 8MB so the same image boots on both supported boards
+# (E1001 has 32MB, DevKitC-1-N8R8 has 8MB); partitions.csv fits in 8MB.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+
+# Custom partition table: dual OTA slots + frame cache (docs/07, OTA rollback)
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# 8MB octal PSRAM (E1001 and N8R8 both use OPI PSRAM)
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+
+# BLE provisioning (NimBLE host)
+CONFIG_BT_ENABLED=y
+CONFIG_BT_NIMBLE_ENABLED=y
+CONFIG_ESP_PROTOCOMM_SUPPORT_SECURITY_VERSION_0=y
+
+# app_main keeps managers/lambdas on its stack; HTTP + TLS need headroom
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
+
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
+# Never disable TLS certificate verification in production.
+# Local dev values (Wi-Fi, server URL) go in untracked sdkconfig.defaults.local.

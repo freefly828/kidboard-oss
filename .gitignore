@@ -1,0 +1,51 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# testing
+coverage/
+
+# playwright
+playwright-report/
+test-results/
+.playwright/
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# docker
+infra/data/
+
+# package archive (baseline already extracted)
+*.zip
+
+# local runtime / scratch artifacts (not source)
+scratch/
+.simulator-data/
+
+# firmware (ESP-IDF)
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/sdkconfig.defaults.local
+firmware/managed_components/
+
+# Playwright MCP 截图/日志
+
+# local content drafts
+内容发布/
+sdkconfig.defaults.local

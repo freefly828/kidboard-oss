@@ -1,0 +1,27 @@
+{
+  "name": "@kidboard/screen-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fixtures": "./src/fixtures.ts",
+    "./assemble": "./src/assemble.ts",
+    "./pages": "./src/pages.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "19.3.0"
+  },
+  "devDependencies": {
+    "@kidboard/tsconfig": "workspace:*",
+    "@types/node": "22.20.2",
+    "@types/react": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

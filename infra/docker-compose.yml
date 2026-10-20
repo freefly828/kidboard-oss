@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped  # 主机重启后随 Docker 自动拉起（2026-10-13：缺此项时只有 renderer 起来）
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kidboard}
+      POSTGRES_USER: ${POSTGRES_USER:-kidboard}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kidboard}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      # schema.sql 为冻结契约基线，首启时由 postgres 镜像自动执行（volume 已初始化则跳过）
+      - ../db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - kidboard_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kidboard} -d ${POSTGRES_DB:-kidboard}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    # Phase 0 基线: Next.js standalone 产物 + health API。
+    # 本地构建+启动: docker compose -f infra/docker-compose.yml up --build -d
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kidboard}:${POSTGRES_PASSWORD:-kidboard}@postgres:5432/${POSTGRES_DB:-kidboard}
+      NODE_ENV: production
+      PORT: 3000
+      # Next.js standalone server.js 读取 HOSTNAME 作为监听地址;
+      # Docker 默认把 HOSTNAME 设为容器 ID，会绑到容器 hostname 而非 0.0.0.0，导致端口拒绝。
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3001}
+      COOKIE_SECURE: "false"
+      # 设备配对令牌派生密钥（只从 .env 读取，不入库）；已绑定设备只校验库中哈希，更换不影响
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      FRAMES_DIR: /data/frames
+      # D-013 和风天气（只从 .env 读取，不入库）：城市搜索与即时刷新
+      QWEATHER_API_KEY: ${QWEATHER_API_KEY:-}
+      QWEATHER_API_HOST: ${QWEATHER_API_HOST:-}
+    volumes:
+      - kidboard_frames:/data/frames
+    ports:
+      - "${WEB_PORT:-3001}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  # renderer worker（Phase 3）：从 render_jobs 抢占任务并产出 frame.bin。
+  # 镜像包含 Chromium 与 Noto CJK 字体（B03），构建较重，属预期成本。
+  renderer:
+    image: kidboard-renderer:phase3
+    build:
+      context: ..
+      dockerfile: infra/renderer.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kidboard}:${POSTGRES_PASSWORD:-kidboard}@postgres:5432/${POSTGRES_DB:-kidboard}
+      NODE_ENV: production
+      FRAMES_DIR: /data/frames
+      RENDER_THRESHOLD: ${RENDER_THRESHOLD:-160}
+      RENDERER_IDLE_MS: ${RENDERER_IDLE_MS:-3000}
+      # D-013 和风天气：每小时刷新天气缓存
+      QWEATHER_API_KEY: ${QWEATHER_API_KEY:-}
+      QWEATHER_API_HOST: ${QWEATHER_API_HOST:-}
+      CHROMIUM_ARGS: "--no-sandbox,--disable-dev-shm-usage,--disable-gpu"
+    volumes:
+      # frame storage（docs/03 §3：V1 用 Docker volume，可换 S3 而不改 DB 契约）
+      - kidboard_frames:/data/frames
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # 进程存活即健康：worker 无 HTTP 端口，用 node 自身探活
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  kidboard_pg:
+  kidboard_frames:

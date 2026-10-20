@@ -1,0 +1,219 @@
+openapi: 3.1.0
+info:
+  title: KidBoard API
+  version: 1.0.0
+servers:
+  - url: https://kidboard.example.com
+paths:
+  /api/v1/device/pair/init:
+    post:
+      summary: Device requests a one-time pairing code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hardwareId, deviceNonce, firmwareVersion]
+              properties:
+                hardwareId: { type: string }
+                deviceNonce: { type: string }
+                firmwareVersion: { type: string }
+      responses:
+        '200':
+          description: Pairing request created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pairingId, code, expiresAt]
+                properties:
+                  pairingId: { type: string, format: uuid }
+                  code: { type: string, pattern: '^[0-9]{6}$' }
+                  expiresAt: { type: string, format: date-time }
+  /api/v1/pairings/claim:
+    post:
+      summary: Authenticated user claims a device pairing code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, childId, deviceName]
+              properties:
+                code: { type: string }
+                childId: { type: string, format: uuid }
+                deviceName: { type: string, maxLength: 40 }
+      responses:
+        '200': { description: Claimed }
+        '409': { description: Code expired or already used }
+  /api/v1/device/pair/{pairingId}/status:
+    get:
+      summary: Device polls pairing status
+      parameters:
+        - in: path
+          name: pairingId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: query
+          name: nonce
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Pending or claimed; token only returned once after claim }
+  /api/v1/device/sync:
+    post:
+      summary: Device heartbeat and desired-state sync
+      security: [{ DeviceToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceSyncRequest'
+      responses:
+        '200':
+          description: Desired state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceSyncResponse'
+  /api/v1/device/frames/{version}/bin:
+    get:
+      summary: Download immutable 1-bit 800x480 frame
+      security: [{ DeviceToken: [] }]
+      parameters:
+        - in: path
+          name: version
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Exactly 48000 bytes
+          content:
+            application/octet-stream: {}
+  /api/v1/device/events/task-complete:
+    post:
+      summary: Complete a task from the physical device
+      security: [{ DeviceToken: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventId, frameVersion, taskOccurrenceId]
+              properties:
+                eventId: { type: string, format: uuid }
+                frameVersion: { type: integer }
+                taskOccurrenceId: { type: string, format: uuid }
+                occurredAt: { type: [string, 'null'], format: date-time }
+      responses:
+        '200': { description: Applied or idempotently already applied }
+components:
+  securitySchemes:
+    DeviceToken:
+      type: apiKey
+      in: header
+      name: Authorization
+  schemas:
+    DeviceSyncRequest:
+      type: object
+      required: [firmwareVersion, frameVersion, partialRefreshCount, rssi, uptimeSeconds]
+      properties:
+        firmwareVersion: { type: string }
+        frameVersion: { type: integer, minimum: 0 }
+        lastRefreshMode: { type: [string, 'null'], enum: [full, fast_full, partial, null] }
+        lastRefreshAt: { type: [string, 'null'], format: date-time }
+        partialRefreshCount: { type: integer, minimum: 0 }
+        rssi: { type: integer }
+        uptimeSeconds: { type: integer, minimum: 0 }
+        freeHeap: { type: integer, minimum: 0 }
+        resetReason: { type: string }
+        temperatureC: { type: number, minimum: -40, maximum: 125, description: D-016 板载 SHT40 室内温度（可选） }
+        humidityPct: { type: number, minimum: 0, maximum: 100, description: D-016 室内相对湿度（可选） }
+        batteryMv: { type: integer, minimum: 0, maximum: 6000, description: D-016 电池电压（可选） }
+        batteryPercent: { type: integer, minimum: 0, maximum: 100, description: D-016 电池电量（可选） }
+    DesiredFrame:
+      type: object
+      required: [version, width, height, bytes, sha256, url, forceFullRefresh]
+      properties:
+        version: { type: integer }
+        width: { type: integer, const: 800 }
+        height: { type: integer, const: 480 }
+        bytes: { type: integer, const: 48000 }
+        sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        url: { type: string }
+        forceFullRefresh: { type: boolean }
+        changedRatio: { type: number, minimum: 0, maximum: 1 }
+        dirtyRect:
+          type: [object, 'null']
+          properties:
+            x: { type: integer }
+            y: { type: integer }
+            w: { type: integer }
+            h: { type: integer }
+    DeviceSyncResponse:
+      type: object
+      required: [serverTime, nextSyncSeconds, desiredFrame, refreshPolicy, commands]
+      properties:
+        serverTime: { type: string, format: date-time }
+        utcOffsetMinutes:
+          type: integer
+          minimum: -840
+          maximum: 840
+          description: D-015 孩子时区此刻相对 UTC 的偏移（分钟，含夏令时）；设备时钟据此把 serverTime 换算为本地时间。可选，旧设备忽略。
+        nextSyncSeconds: { type: integer, minimum: 15, maximum: 300 }
+        desiredFrame:
+          oneOf:
+            - $ref: '#/components/schemas/DesiredFrame'
+            - type: 'null'
+        refreshPolicy:
+          type: object
+          required: [partialEnabled, partialMaxCount, forceFullAfterHours, partialAreaMaxRatio]
+          properties:
+            partialEnabled: { type: boolean }
+            partialMaxCount: { type: integer, minimum: 0, maximum: 20 }
+            forceFullAfterHours: { type: integer, minimum: 1, maximum: 168 }
+            partialAreaMaxRatio: { type: number, minimum: 0, maximum: 1 }
+        interactiveTasks:
+          type: array
+          maxItems: 8
+          items:
+            type: object
+            required: [id, slot, status]
+            properties:
+              id: { type: string, format: uuid }
+              slot: { type: integer, minimum: 0 }
+              status: { type: string, enum: [pending, completed] }
+        ota:
+          type: [object, 'null']
+        pages:
+          type: array
+          description: D-018 当前 active 画面的附加页（第 1.. 页）。每次同步都返回，设备按 SHA 下载缺失或变化的页；旧设备忽略
+          items:
+            type: object
+            required: [index, sha256, bytes, url]
+            properties:
+              index: { type: integer, minimum: 1 }
+              kind: { type: string, enum: [week, points, focus], description: D-019 页类型，设备据此找到专注页 }
+              sha256: { type: string, pattern: '^[0-9a-f]{64}$' }
+              bytes: { type: integer, const: 48000 }
+              url: { type: string, description: '/api/v1/device/frames/{version}/pages/{index}/bin' }
+        focus:
+          type: [object, 'null']
+          description: D-019 专注计时配置（孩子级）
+          properties:
+            minutes: { type: integer, minimum: 5, maximum: 90 }
+            points: { type: integer, minimum: 0, maximum: 50 }
+        commands:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              type: { type: string, enum: [force_full_refresh, reboot, beep] }
+              payload:
+                type: object
+                description: D-017 beep 为 { alertId, beeps }；画面重渲染期间暂缓下发，使提醒横幅与铃声同时到达

@@ -1,0 +1,29 @@
+{
+  "name": "kidboard",
+  "private": true,
+  "license": "Apache-2.0",
+  "version": "0.1.0",
+  "description": "KidBoard — 家庭儿童墨水屏日程任务终端（monorepo root）",
+  "packageManager": "pnpm@9.15.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @kidboard/web dev",
+    "build": "pnpm -r build",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "db:generate": "pnpm --filter @kidboard/db generate",
+    "db:migrate": "pnpm --filter @kidboard/db migrate",
+    "db:studio": "pnpm --filter @kidboard/db studio",
+    "simulator": "node scripts/run-simulator.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "globals": "17.12.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0"
+  }
+}

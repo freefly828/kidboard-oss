@@ -1,0 +1,1 @@
+# public/ — 静态资源目录（Dockerfile standalone 拷贝需要此目录存在）

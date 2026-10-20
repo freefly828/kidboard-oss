@@ -1,0 +1,85 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "board_config.cpp"
+        "crypto/sha256.cpp"
+        "utils/uuid.cpp"
+        "tasks/task_focus_manager.cpp"
+        "tasks/focus_box.cpp"
+        "events/offline_event_queue.cpp"
+        "network/wifi_manager.cpp"
+        "network/wifi_portal.cpp"
+        "api_client/json_helper.cpp"
+        "api_client/api_client.cpp"
+        "sync_engine/sync_engine.cpp"
+        "epaper/epaper_display.cpp"
+        "epaper/waveshare_7in5_v2.cpp"
+        "frame_store/frame_store.cpp"
+        "refresh_policy/refresh_policy.cpp"
+        "buttons/button_handler.cpp"
+        "storage/nvs_manager.cpp"
+        "ui/pairing_screen.cpp"
+        "provisioning/provisioning_manager.cpp"
+        "provisioning/pairing_client.cpp"
+        "ota/ota_manager.cpp"
+        "diagnostics/diagnostics_manager.cpp"
+        "status_led/status_led.cpp"
+        "clock/clock_renderer.cpp"
+        "clock/device_clock.cpp"
+        "sensors/i2c_bus.cpp"
+        "sensors/env_sensor.cpp"
+        "sensors/battery_monitor.cpp"
+        "buzzer/buzzer.cpp"
+        "focus/focus_timer.cpp"
+        "focus/focus_renderer.cpp"
+    INCLUDE_DIRS
+        "."
+        "crypto"
+        "utils"
+        "tasks"
+        "events"
+        "network"
+        "api_client"
+        "sync_engine"
+        "epaper"
+        "frame_store"
+        "refresh_policy"
+        "buttons"
+        "storage"
+        "ui"
+        "provisioning"
+        "ota"
+        "diagnostics"
+        "status_led"
+        "clock"
+        "sensors"
+        "buzzer"
+        "focus"
+    REQUIRES
+        esp_driver_gpio
+        esp_driver_spi
+        esp_driver_i2c
+        esp_adc
+        esp_driver_ledc
+        esp_app_format
+        nvs_flash
+        esp_partition
+        spiffs
+        esp_timer
+        freertos
+        esp_wifi
+        esp_event
+        esp_netif
+        esp_http_client
+        esp_http_server
+        lwip
+        mbedtls
+        network_provisioning
+        protocomm
+        app_update
+)
+
+
+
+# 主任务栈仅 16KB（sdkconfig.defaults）；单函数栈帧 >8KB 编译即报错，防止大数组上栈导致真机启动循环
+target_compile_options(${COMPONENT_LIB} PRIVATE -Werror=stack-usage=8192)

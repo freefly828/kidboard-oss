@@ -1,0 +1,11 @@
+{
+  "firmwareVersion": "1.0.0",
+  "frameVersion": 104,
+  "lastRefreshMode": "full",
+  "lastRefreshAt": "2026-09-15T08:10:02Z",
+  "partialRefreshCount": 0,
+  "rssi": -61,
+  "uptimeSeconds": 83122,
+  "freeHeap": 182144,
+  "resetReason": "power_on"
+}

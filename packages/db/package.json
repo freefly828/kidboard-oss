@@ -1,0 +1,37 @@
+{
+  "name": "@kidboard/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts",
+    "./materialize": "./src/materialize.ts",
+    "./screen-input": "./src/screenInput.ts",
+    "./weather": "./src/weather.ts",
+    "./sensors": "./src/sensors.ts",
+    "./alerts": "./src/alerts.ts",
+    "./pages-input": "./src/pagesInput.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "migrate:sql": "tsx scripts/migrate-sql.ts",
+    "studio": "drizzle-kit studio",
+    "verify:parity": "tsx scripts/verify-schema-parity.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm verify:parity"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "postgres": "3.4.9"
+  },
+  "devDependencies": {
+    "@kidboard/tsconfig": "workspace:*",
+    "@types/node": "22.20.2",
+    "dotenv": "17.4.2",
+    "drizzle-kit": "0.31.10",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3"
+  }
+}
